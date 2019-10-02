@@ -58,3 +58,12 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+#Copyright
+*.wav
+*.mp3
+*.flac
+*.m4a
+*.wav.meta
+*.mp3.meta
+*.flac.meta
+*.m4a.meta
