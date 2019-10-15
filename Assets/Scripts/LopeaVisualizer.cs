@@ -6,8 +6,9 @@ public class LopeaVisualizer : MonoBehaviour
 {
      
     [SerializeField] Vector3[,] positions;
-    [SerializeField] int iterations = 0;
-    
+    LopeaLine[] lines;
+    [SerializeField] int iterations;
+    [SerializeField] Material material;
     [SerializeField] FFTSize quality = FFTSize.basic;
     [SerializeField] AudioSource Audio;
     [SerializeField] bool allowwaterfall;
@@ -17,7 +18,8 @@ public class LopeaVisualizer : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-      generateinitpositions();                
+      generateinitpositions();
+
     }
     
     // Update is called once per frame
@@ -27,7 +29,14 @@ public class LopeaVisualizer : MonoBehaviour
       applyaudiodata();
       if(allowwaterfall)
         applywaterfall();
-      
+       
+    }
+    private void OnDestroy()
+    {
+        for (int  i = 0;  i < lines.Length;  i++)
+        {
+            Destroy(lines[i].gameObject);
+        }
     }
     void applyaudiodata(){
       Audio.GetSpectrumData(fftdata, 0 , FFTWindow.BlackmanHarris);             
@@ -35,9 +44,11 @@ public class LopeaVisualizer : MonoBehaviour
       for(int x = 0; x < (int)quality; x++)                                     
       {                                                                         
         positions[x,0].y =                                                      
-          fftdata[x];                                                           
-                                                                                
-      }      
+          fftdata[x] * transform.localScale.y;
+        lines[0].UpdateNode(positions[x,0],x);
+            
+      }
+       
     }
     void applywaterfall(){
       for(int y =0; y < iterations; y++){
@@ -47,23 +58,38 @@ public class LopeaVisualizer : MonoBehaviour
       }
     }
     void generateinitpositions(){
-      fftdata = new float[(int)quality];
-      positions = new Vector3[(int)quality, iterations];
-      for(int y = 0; y < iterations; y++ ){
-        for(int x = 0; x < (int)quality; x++){
-          positions[x,y] = 
-            new Vector3(x, 0, y);  
+        fftdata = new float[(int)quality];
+        positions = new Vector3[(int)quality, iterations];
+        lines = new LopeaLine[iterations];
+        for (int i = 0; i < iterations; i++)
+        {
+            var o = new GameObject(i.ToString());
+            print(i);
+            lines[i] = o.AddComponent<LopeaLine>();
+            o.transform.parent = transform;
+            lines[i].SetScale(0.5f);
+            lines[i].SetQuality(10);
         }
-      }
+        for (int y = 0; y < iterations; y++ ){
+            
+            for(int x = 0; x < (int)quality; x++){
+                positions[x,y] = 
+                    new Vector3(x, 0, y * transform.localScale.z);
+                lines[y].AddNode(positions[x,y]);
+            }
+        }
     }
     void shiftvectors(){
       for(int y = iterations - 2; y >= 0; y-- ){
         for(int x =0; x < (int)quality; x++){
           positions[x, y+1].y = positions[x,y].y;
-        } 
+          lines[y+1].UpdateNode(positions[x,y+1],x,false);
+        }
+            lines[y+1].UpdateVerts();
       }       
     }
     void OnDrawGizmos(){
+        print(string.Format("{0} {1}", positions.Length, ((int)quality) * iterations));
       if(positions != null){
         for(int y = 0; y < iterations; y++){
           for(int x = 0; x < (int) quality - 1; x++){
